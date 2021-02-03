@@ -81,26 +81,23 @@ func (l *LRU) Remove(key interface{}) (ok bool) {
 	return
 }
 
-func (l *LRU) insert(n, at *node) *node {
+func (l *LRU) insert(n, at *node) {
 	n.prev = at
 	n.next = at.next
 	n.prev.next = n
 	n.next.prev = n
-	return n
 }
 
-func (l *LRU) remove(n *node) *node {
+func (l *LRU) remove(n *node) {
 	n.prev.next = n.next
 	n.next.prev = n.prev
 	n.next = nil
 	n.prev = nil
-	return n
 }
 
-func (l *LRU) move(n, at *node) *node {
+func (l *LRU) move(n, at *node) {
 	if n != at {
 		l.remove(n)
 		l.insert(n, at)
 	}
-	return n
 }
