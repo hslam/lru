@@ -44,6 +44,7 @@ func (l *LRU) Reset() {
 // Set sets a value with a key.
 func (l *LRU) Set(key interface{}, value interface{}) {
 	if n, ok := l.nodes[key]; ok {
+		n.value = value
 		if n != l.root.next {
 			l.move(n, l.root)
 		}
