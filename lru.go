@@ -51,6 +51,7 @@ func (l *LRU) Set(key, value interface{}) {
 	} else {
 		if len(l.nodes)+1 > l.capacity {
 			back := l.root.prev
+			delete(l.nodes, back.key)
 			l.remove(back)
 		}
 		n := &node{key: key, value: value}
