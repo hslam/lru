@@ -41,8 +41,8 @@ func (l *LRU) Reset() {
 	l.root.prev = l.root
 }
 
-// Set sets a value with a key.
-func (l *LRU) Set(key interface{}, value interface{}) {
+// Set sets the value for a key.
+func (l *LRU) Set(key, value interface{}) {
 	if n, ok := l.nodes[key]; ok {
 		n.value = value
 		if n != l.root.next {
@@ -59,7 +59,7 @@ func (l *LRU) Set(key interface{}, value interface{}) {
 	}
 }
 
-// Get gets a value with a key.
+// Get returns the value for a key.
 func (l *LRU) Get(key interface{}) (value interface{}, ok bool) {
 	var n *node
 	if n, ok = l.nodes[key]; ok {
@@ -71,7 +71,7 @@ func (l *LRU) Get(key interface{}) (value interface{}, ok bool) {
 	return
 }
 
-// Remove removes a value with a key.
+// Remove removes the value for a key.
 func (l *LRU) Remove(key interface{}) (ok bool) {
 	var n *node
 	if n, ok = l.nodes[key]; ok {
