@@ -49,13 +49,13 @@ func (l *LRU) Set(key, value interface{}) {
 			l.move(n, l.root)
 		}
 	} else {
+		if len(l.nodes)+1 > l.capacity {
+			back := l.root.prev
+			l.remove(back)
+		}
 		n := &node{key: key, value: value}
 		l.nodes[key] = n
 		l.insert(n, l.root)
-	}
-	if len(l.nodes) > l.capacity {
-		back := l.root.prev
-		l.remove(back)
 	}
 }
 

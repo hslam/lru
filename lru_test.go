@@ -35,7 +35,7 @@ func TestLRU(t *testing.T) {
 			t.Error(len(l.nodes), length-i-1)
 		}
 	}
-	for i := 0; i < capacity*2; i++ {
+	for i := 0; i < capacity+1; i++ {
 		l.Set(i, i)
 		if l.root.next.key.(int) != i {
 			t.Error(l.root.next.key.(int), i)
