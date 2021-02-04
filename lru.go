@@ -39,8 +39,8 @@ func New(capacity int, free Free) *LRU {
 
 // Reset resets the LRU cache.
 func (l *LRU) Reset() {
-	for k := range l.nodes {
-		delete(l.nodes, k)
+	for _, n := range l.nodes {
+		l.delete(n)
 	}
 	l.root.next = l.root
 	l.root.prev = l.root
