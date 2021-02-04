@@ -33,8 +33,10 @@ func main() {
 	l := lru.New(capacity, free)
 	key := 1
 	l.Set(key, "Hello world")
+	l.Done(key)
 	if v, ok := l.Get(key); ok {
 		fmt.Println(v)
+		l.Done(key)
 	}
 	l.Remove(key)
 	l.Reset()
