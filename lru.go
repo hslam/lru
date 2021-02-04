@@ -47,7 +47,7 @@ func (l *LRU) Reset() {
 	l.root.prev = l.root
 }
 
-// Set sets the value for a key.
+// Set sets the value and increments the reference counter by one for a key.
 func (l *LRU) Set(key, value interface{}) {
 	if n, ok := l.nodes[key]; ok {
 		n.value = value
@@ -67,7 +67,7 @@ func (l *LRU) Set(key, value interface{}) {
 	}
 }
 
-// Get returns the value for a key.
+// Get returns the value and increments the reference counter by one for a key.
 func (l *LRU) Get(key interface{}) (value interface{}, ok bool) {
 	var n *node
 	if n, ok = l.nodes[key]; ok {
@@ -80,6 +80,13 @@ func (l *LRU) Get(key interface{}) (value interface{}, ok bool) {
 	return
 }
 
+// Done decrements the reference counter by one for a key.
+func (l *LRU) Done(key interface{}) {
+	if n, ok := l.nodes[key]; ok {
+		n.counter--
+	}
+}
+
 // Remove removes the value for a key.
 func (l *LRU) Remove(key interface{}) (ok bool) {
 	var n *node
@@ -87,13 +94,6 @@ func (l *LRU) Remove(key interface{}) (ok bool) {
 		l.delete(n)
 	}
 	return
-}
-
-// Done decrements the reference counter by one for a key.
-func (l *LRU) Done(key interface{}) {
-	if n, ok := l.nodes[key]; ok {
-		n.counter--
-	}
 }
 
 func (l *LRU) delete(n *node) {
