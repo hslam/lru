@@ -23,7 +23,7 @@ type LRU struct {
 	free     Free
 }
 
-// New return a new LRU.
+// New returns a new LRU cache.
 func New(capacity int, free Free) *LRU {
 	if capacity <= 0 {
 		panic("non-positive capacity")
