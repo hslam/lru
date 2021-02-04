@@ -18,6 +18,7 @@ func TestLRU(t *testing.T) {
 	length := 10
 	for i := 0; i < length; i++ {
 		l.Set(i, i)
+		l.Done(i)
 		if l.root.next.key.(int) != i {
 			t.Error(l.root.next.key.(int), i)
 		}
@@ -27,6 +28,7 @@ func TestLRU(t *testing.T) {
 	}
 	for i := 0; i < length; i++ {
 		l.Set(i, i)
+		l.Done(i)
 		if l.root.next.key.(int) != i {
 			t.Error(l.root.next.key.(int), i)
 		}
@@ -36,6 +38,7 @@ func TestLRU(t *testing.T) {
 	}
 	for i := 0; i < length; i++ {
 		l.Get(i)
+		l.Done(i)
 		if l.root.next.key.(int) != i {
 			t.Error(l.root.next.key.(int), i)
 		}
@@ -48,6 +51,7 @@ func TestLRU(t *testing.T) {
 	}
 	for i := 0; i < capacity+1; i++ {
 		l.Set(i, i)
+		l.Done(i)
 		if l.root.next.key.(int) != i {
 			t.Error(l.root.next.key.(int), i)
 		}

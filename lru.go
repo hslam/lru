@@ -5,10 +5,11 @@
 package lru
 
 type node struct {
-	key   interface{}
-	value interface{}
-	prev  *node
-	next  *node
+	key     interface{}
+	value   interface{}
+	prev    *node
+	next    *node
+	counter int64
 }
 
 // Free is a free callback.
@@ -53,6 +54,7 @@ func (l *LRU) Set(key, value interface{}) {
 		if n != l.root.next {
 			l.move(n, l.root)
 		}
+		n.counter++
 	} else {
 		if len(l.nodes)+1 > l.capacity {
 			back := l.root.prev
@@ -61,6 +63,7 @@ func (l *LRU) Set(key, value interface{}) {
 		n := &node{key: key, value: value}
 		l.nodes[key] = n
 		l.insert(n, l.root)
+		n.counter++
 	}
 }
 
@@ -72,6 +75,7 @@ func (l *LRU) Get(key interface{}) (value interface{}, ok bool) {
 			l.move(n, l.root)
 		}
 		value = n.value
+		n.counter++
 	}
 	return
 }
@@ -85,10 +89,17 @@ func (l *LRU) Remove(key interface{}) (ok bool) {
 	return
 }
 
+// Done decrements the reference counter by one for a key.
+func (l *LRU) Done(key interface{}) {
+	if n, ok := l.nodes[key]; ok {
+		n.counter--
+	}
+}
+
 func (l *LRU) delete(n *node) {
 	delete(l.nodes, n.key)
 	l.remove(n)
-	if l.free != nil {
+	if l.free != nil && n.counter < 1 {
 		l.free(n.key, n.value)
 	}
 }
