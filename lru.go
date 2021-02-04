@@ -11,15 +11,19 @@ type node struct {
 	next  *node
 }
 
+// Free is a free callback.
+type Free func(key, value interface{})
+
 // LRU represents an LRU cache.
 type LRU struct {
 	nodes    map[interface{}]*node
 	root     *node
 	capacity int
+	free     Free
 }
 
 // New return a new LRU.
-func New(capacity int) *LRU {
+func New(capacity int, free Free) *LRU {
 	if capacity <= 0 {
 		panic("non-positive capacity")
 	}
@@ -27,6 +31,7 @@ func New(capacity int) *LRU {
 		nodes:    make(map[interface{}]*node),
 		root:     &node{},
 		capacity: capacity,
+		free:     free,
 	}
 	l.Reset()
 	return l
@@ -51,8 +56,7 @@ func (l *LRU) Set(key, value interface{}) {
 	} else {
 		if len(l.nodes)+1 > l.capacity {
 			back := l.root.prev
-			delete(l.nodes, back.key)
-			l.remove(back)
+			l.delete(back)
 		}
 		n := &node{key: key, value: value}
 		l.nodes[key] = n
@@ -76,10 +80,17 @@ func (l *LRU) Get(key interface{}) (value interface{}, ok bool) {
 func (l *LRU) Remove(key interface{}) (ok bool) {
 	var n *node
 	if n, ok = l.nodes[key]; ok {
-		delete(l.nodes, key)
-		l.remove(n)
+		l.delete(n)
 	}
 	return
+}
+
+func (l *LRU) delete(n *node) {
+	delete(l.nodes, n.key)
+	l.remove(n)
+	if l.free != nil {
+		l.free(n.key, n.value)
+	}
 }
 
 func (l *LRU) insert(n, at *node) {

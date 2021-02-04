@@ -9,7 +9,12 @@ import (
 
 func TestLRU(t *testing.T) {
 	capacity := 100
-	l := New(capacity)
+	free := func(key, value interface{}) {
+		if key.(int) != value.(int) {
+			t.Error()
+		}
+	}
+	l := New(capacity, free)
 	length := 10
 	for i := 0; i < length; i++ {
 		l.Set(i, i)
@@ -62,5 +67,5 @@ func TestNew(t *testing.T) {
 			t.Error()
 		}
 	}()
-	New(0)
+	New(0, nil)
 }
