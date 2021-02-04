@@ -28,7 +28,9 @@ import (
 )
 
 func main() {
-	l := lru.New(10)
+	var capacity = 10
+	var free lru.Free = func(key, value interface{}) {}
+	l := lru.New(capacity, free)
 	key := 1
 	l.Set(key, "Hello world")
 	if v, ok := l.Get(key); ok {
