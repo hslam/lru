@@ -4,12 +4,22 @@
 // Package lru implements an LRU cache.
 package lru
 
+// Reference represents the reference counter.
+type Reference interface {
+	Done()
+}
+
 type node struct {
 	key     interface{}
 	value   interface{}
 	prev    *node
 	next    *node
 	counter int64
+}
+
+// Done decrements the reference counter by one.
+func (n *node) Done() {
+	n.counter--
 }
 
 // Free is a free callback.
@@ -48,27 +58,29 @@ func (l *LRU) Reset() {
 }
 
 // Set sets the value and increments the reference counter by one for a key.
-func (l *LRU) Set(key, value interface{}) {
-	if n, ok := l.nodes[key]; ok {
+func (l *LRU) Set(key, value interface{}) Reference {
+	var n *node
+	var ok bool
+	if n, ok = l.nodes[key]; ok {
 		n.value = value
 		if n != l.root.next {
 			l.move(n, l.root)
 		}
-		n.counter++
 	} else {
 		if len(l.nodes)+1 > l.capacity {
 			back := l.root.prev
 			l.delete(back)
 		}
-		n := &node{key: key, value: value}
+		n = &node{key: key, value: value}
 		l.nodes[key] = n
 		l.insert(n, l.root)
-		n.counter++
 	}
+	n.counter++
+	return n
 }
 
 // Get returns the value and increments the reference counter by one for a key.
-func (l *LRU) Get(key interface{}) (value interface{}, ok bool) {
+func (l *LRU) Get(key interface{}) (value interface{}, reference Reference, ok bool) {
 	var n *node
 	if n, ok = l.nodes[key]; ok {
 		if n != l.root.next {
@@ -76,15 +88,9 @@ func (l *LRU) Get(key interface{}) (value interface{}, ok bool) {
 		}
 		value = n.value
 		n.counter++
+		reference = n
 	}
 	return
-}
-
-// Done decrements the reference counter by one for a key.
-func (l *LRU) Done(key interface{}) {
-	if n, ok := l.nodes[key]; ok {
-		n.counter--
-	}
 }
 
 // Remove removes the value for a key.

@@ -32,11 +32,11 @@ func main() {
 	var free lru.Free = func(key, value interface{}) {}
 	l := lru.New(capacity, free)
 	key := 1
-	l.Set(key, "Hello world")
-	l.Done(key)
-	if v, ok := l.Get(key); ok {
+	r := l.Set(key, "Hello world")
+	r.Done()
+	if v, r, ok := l.Get(key); ok {
 		fmt.Println(v)
-		l.Done(key)
+		r.Done()
 	}
 	l.Remove(key)
 	l.Reset()
