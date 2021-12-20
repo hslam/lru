@@ -14,12 +14,16 @@ type node struct {
 	value   interface{}
 	prev    *node
 	next    *node
+	free    Free
 	counter int64
 }
 
 // Done decrements the reference counter by one.
 func (n *node) Done() {
 	n.counter--
+	if n.free != nil && n.counter < 0 {
+		n.free(n.key, n.value)
+	}
 }
 
 // Free is a free callback.
@@ -71,7 +75,7 @@ func (l *LRU) Set(key, value interface{}) Reference {
 			back := l.root.prev
 			l.delete(back)
 		}
-		n = &node{key: key, value: value}
+		n = &node{key: key, value: value, free: l.free}
 		l.nodes[key] = n
 		l.insert(n, l.root)
 	}
@@ -105,9 +109,7 @@ func (l *LRU) Remove(key interface{}) (ok bool) {
 func (l *LRU) delete(n *node) {
 	delete(l.nodes, n.key)
 	l.remove(n)
-	if l.free != nil && n.counter < 1 {
-		l.free(n.key, n.value)
-	}
+	n.Done()
 }
 
 func (l *LRU) insert(n, at *node) {
