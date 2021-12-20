@@ -64,9 +64,11 @@ func (l *LRU) Reset() {
 // Set sets the value and increments the reference counter by one for a key.
 func (l *LRU) Set(key, value interface{}) Reference {
 	var n *node
-	var ok bool
-	if n, ok = l.nodes[key]; ok {
-		n.value = value
+	if old, ok := l.nodes[key]; ok {
+		n = &node{key: key, value: value, free: l.free}
+		l.nodes[key] = n
+		l.replace(old, n)
+		old.Done()
 		if n != l.root.next {
 			l.move(n, l.root)
 		}
@@ -131,4 +133,11 @@ func (l *LRU) move(n, at *node) {
 		l.remove(n)
 		l.insert(n, at)
 	}
+}
+
+func (l *LRU) replace(old, new *node) {
+	new.next = old.next
+	new.next.prev = new
+	new.prev = old.prev
+	new.prev.next = new
 }
