@@ -12,6 +12,7 @@ type Reference interface {
 type node struct {
 	key     interface{}
 	value   interface{}
+	cost    int
 	prev    *node
 	next    *node
 	free    Free
@@ -34,10 +35,11 @@ type LRU struct {
 	nodes    map[interface{}]*node
 	root     *node
 	capacity int
+	cost     int
 	free     Free
 }
 
-// New returns a new LRU cache.
+// New returns a new LRU cache. LRU is not thread safe.
 func New(capacity int, free Free) *LRU {
 	if capacity <= 0 {
 		panic("non-positive capacity")
@@ -61,28 +63,63 @@ func (l *LRU) Reset() {
 	l.root.prev = l.root
 }
 
+// Resize sets the LRU cache capacity.
+func (l *LRU) Resize(capacity int) {
+	if capacity <= 0 {
+		panic("non-positive capacity")
+	}
+	l.capacity = capacity
+	for l.cost > l.capacity {
+		back := l.root.prev
+		l.delete(back)
+	}
+}
+
 // Set sets the value and increments the reference counter by one for a key.
-func (l *LRU) Set(key, value interface{}) Reference {
-	var n *node
+func (l *LRU) Set(key, value interface{}, cost int) Reference {
+	var n = &node{key: key, value: value, cost: cost, free: l.free}
 	if old, ok := l.nodes[key]; ok {
-		n = &node{key: key, value: value, free: l.free}
-		l.nodes[key] = n
-		l.replace(old, n)
-		old.Done()
-		if n != l.root.next {
-			l.move(n, l.root)
+		var removed bool
+		var oldCost = old.cost
+		for l.cost-oldCost+cost > l.capacity {
+			back := l.root.prev
+			if old == back {
+				removed = true
+				oldCost = 0
+			}
+			l.delete(back)
 		}
+		l.nodes[key] = n
+		if removed {
+			l.insert(n, l.root)
+		} else {
+			l.replace(old, n)
+			old.Done()
+			if n != l.root.next {
+				l.move(n, l.root)
+			}
+		}
+		l.cost = l.cost - oldCost + cost
 	} else {
-		if len(l.nodes)+1 > l.capacity {
+		for l.cost+cost > l.capacity {
 			back := l.root.prev
 			l.delete(back)
 		}
-		n = &node{key: key, value: value, free: l.free}
 		l.nodes[key] = n
 		l.insert(n, l.root)
+		l.cost += cost
 	}
 	n.counter++
 	return n
+}
+
+// Remove removes the value for a key.
+func (l *LRU) Remove(key interface{}) (ok bool) {
+	var n *node
+	if n, ok = l.nodes[key]; ok {
+		l.delete(n)
+	}
+	return
 }
 
 // Get returns the value and increments the reference counter by one for a key.
@@ -99,19 +136,18 @@ func (l *LRU) Get(key interface{}) (value interface{}, reference Reference, ok b
 	return
 }
 
-// Remove removes the value for a key.
-func (l *LRU) Remove(key interface{}) (ok bool) {
-	var n *node
-	if n, ok = l.nodes[key]; ok {
-		l.delete(n)
-	}
-	return
-}
-
 func (l *LRU) delete(n *node) {
 	delete(l.nodes, n.key)
 	l.remove(n)
 	n.Done()
+	l.cost -= n.cost
+}
+
+func (l *LRU) move(n, at *node) {
+	if n != at {
+		l.remove(n)
+		l.insert(n, at)
+	}
 }
 
 func (l *LRU) insert(n, at *node) {
@@ -126,13 +162,6 @@ func (l *LRU) remove(n *node) {
 	n.next.prev = n.prev
 	n.next = nil
 	n.prev = nil
-}
-
-func (l *LRU) move(n, at *node) {
-	if n != at {
-		l.remove(n)
-		l.insert(n, at)
-	}
 }
 
 func (l *LRU) replace(old, new *node) {

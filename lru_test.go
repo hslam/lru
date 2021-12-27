@@ -17,7 +17,7 @@ func TestLRU(t *testing.T) {
 	l := New(capacity, free)
 	length := 10
 	for i := 0; i < length; i++ {
-		r := l.Set(i, i)
+		r := l.Set(i, i, 1)
 		r.Done()
 		if l.root.next.key.(int) != i {
 			t.Error(l.root.next.key.(int), i)
@@ -27,7 +27,7 @@ func TestLRU(t *testing.T) {
 		}
 	}
 	for i := 0; i < length; i++ {
-		r := l.Set(i, i)
+		r := l.Set(i, i, 1)
 		r.Done()
 		if l.root.next.key.(int) != i {
 			t.Error(l.root.next.key.(int), i)
@@ -49,18 +49,65 @@ func TestLRU(t *testing.T) {
 			t.Error(len(l.nodes), length-i-1)
 		}
 	}
-	for i := 0; i < capacity+1; i++ {
-		r := l.Set(i, i)
+	for j := 0; j < capacity*2; j++ {
+		i := j % capacity
+		cost := j/capacity + 1
+		r := l.Set(i, i, cost)
 		r.Done()
 		if l.root.next.key.(int) != i {
 			t.Error(l.root.next.key.(int), i)
 		}
+		if l.cost > l.capacity {
+			t.Error(l.cost, l.capacity)
+		}
+		if j >= capacity+capacity/2 {
+			if len(l.nodes) != capacity/2 {
+				t.Error(len(l.nodes), capacity/2)
+			}
+		} else if j >= capacity {
+			if len(l.nodes) != capacity-i-1 {
+				t.Error(len(l.nodes), capacity-i-1)
+			}
+		} else {
+			if len(l.nodes) != i+1 {
+				t.Error(len(l.nodes), i+1)
+			}
+		}
 	}
-	if len(l.nodes) != l.capacity {
-		t.Error(len(l.nodes), l.capacity)
+	{
+		l.Resize(capacity / 2)
+		if l.cost > l.capacity {
+			t.Error(l.cost, l.capacity)
+		}
+	}
+	{
+		l.Resize(capacity * 2)
+		if l.cost > l.capacity {
+			t.Error(l.cost, l.capacity)
+		}
+	}
+	for j := 0; j < capacity*2; j++ {
+		i := j % capacity
+		cost := j/capacity + 1
+		r := l.Set(i, i, cost)
+		r.Done()
+		if l.root.next.key.(int) != i {
+			t.Error(l.root.next.key.(int), i)
+		}
+		if l.cost > l.capacity {
+			t.Error(l.cost, l.capacity)
+		}
+		if j >= capacity {
+			if len(l.nodes) != capacity {
+				t.Error(len(l.nodes), capacity)
+			}
+		}
 	}
 	l.Reset()
 	if len(l.nodes) != 0 {
+		t.Error(len(l.nodes))
+	}
+	if l.cost != 0 {
 		t.Error(len(l.nodes))
 	}
 }
@@ -72,4 +119,14 @@ func TestNew(t *testing.T) {
 		}
 	}()
 	New(0, nil)
+}
+
+func TestResize(t *testing.T) {
+	defer func() {
+		if err := recover(); err == nil {
+			t.Error()
+		}
+	}()
+	c := New(1, nil)
+	c.Resize(0)
 }

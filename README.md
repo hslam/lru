@@ -28,11 +28,13 @@ import (
 )
 
 func main() {
-	var capacity = 10
+	var capacity = 1024
 	var free lru.Free = func(key, value interface{}) {}
 	l := lru.New(capacity, free)
 	key := 1
-	r := l.Set(key, "Hello world")
+	value := "Hello world"
+	cost := len(value)
+	r := l.Set(key, value, cost)
 	r.Done()
 	if v, r, ok := l.Get(key); ok {
 		fmt.Println(v)
