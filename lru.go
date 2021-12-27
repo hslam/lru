@@ -75,6 +75,11 @@ func (l *LRU) Resize(capacity int) {
 	}
 }
 
+// Size returns the LRU cache size
+func (l *LRU) Size() int {
+	return l.cost
+}
+
 // Set sets the value and increments the reference counter by one for a key.
 func (l *LRU) Set(key, value interface{}, cost int) Reference {
 	var n = &node{key: key, value: value, cost: cost, free: l.free}

@@ -107,7 +107,7 @@ func TestLRU(t *testing.T) {
 	if len(l.nodes) != 0 {
 		t.Error(len(l.nodes))
 	}
-	if l.cost != 0 {
+	if l.Size() != 0 {
 		t.Error(len(l.nodes))
 	}
 }
