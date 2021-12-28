@@ -17,7 +17,10 @@ func TestLRU(t *testing.T) {
 	l := New(capacity, free)
 	length := 10
 	for i := 0; i < length; i++ {
-		r := l.Set(i, i, 1)
+		r, ok := l.Set(i, i, 1)
+		if !ok {
+			t.Error()
+		}
 		r.Done()
 		if l.root.next.key.(int) != i {
 			t.Error(l.root.next.key.(int), i)
@@ -27,7 +30,10 @@ func TestLRU(t *testing.T) {
 		}
 	}
 	for i := 0; i < length; i++ {
-		r := l.Set(i, i, 1)
+		r, ok := l.Set(i, i, 1)
+		if !ok {
+			t.Error()
+		}
 		r.Done()
 		if l.root.next.key.(int) != i {
 			t.Error(l.root.next.key.(int), i)
@@ -52,7 +58,10 @@ func TestLRU(t *testing.T) {
 	for j := 0; j < capacity*2; j++ {
 		i := j % capacity
 		cost := j/capacity + 1
-		r := l.Set(i, i, cost)
+		r, ok := l.Set(i, i, cost)
+		if !ok {
+			t.Error()
+		}
 		r.Done()
 		if l.root.next.key.(int) != i {
 			t.Error(l.root.next.key.(int), i)
@@ -89,7 +98,10 @@ func TestLRU(t *testing.T) {
 	for j := 0; j < capacity*2; j++ {
 		i := j % capacity
 		cost := j/capacity + 1
-		r := l.Set(i, i, cost)
+		r, ok := l.Set(i, i, cost)
+		if !ok {
+			t.Error()
+		}
 		r.Done()
 		if l.root.next.key.(int) != i {
 			t.Error(l.root.next.key.(int), i)
@@ -129,4 +141,60 @@ func TestResize(t *testing.T) {
 	}()
 	c := New(1, nil)
 	c.Resize(0)
+}
+
+func TestSet(t *testing.T) {
+	var exceeded bool
+	c := New(2, func(key, value interface{}) {
+		if v, ok := value.(int); ok && v > 2 {
+			exceeded = true
+		}
+	})
+	{
+		r, ok := c.Set(1, 1, 1)
+		if !ok {
+			t.Error()
+		}
+		r.Done()
+	}
+	{
+		r, ok := c.Set(2, 2, 2)
+		if !ok {
+			t.Error()
+		}
+		r.Done()
+	}
+	{
+		v, r, ok := c.Get(2)
+		if !ok {
+			t.Error()
+		}
+		if v.(int) != 2 {
+			t.Error()
+		}
+		r.Done()
+	}
+	{
+		r, ok := c.Set(3, 3, 3)
+		if ok {
+			t.Error()
+		}
+		if exceeded {
+			t.Error()
+		}
+		r.Done()
+		if !exceeded {
+			t.Error()
+		}
+	}
+	{
+		v, r, ok := c.Get(2)
+		if !ok {
+			t.Error()
+		}
+		if v.(int) != 2 {
+			t.Error()
+		}
+		r.Done()
+	}
 }

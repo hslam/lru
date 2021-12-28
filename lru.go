@@ -19,11 +19,21 @@ type node struct {
 	counter int64
 }
 
+type reference struct {
+	n    *node
+	step int64
+}
+
+func (n *node) newReference() Reference {
+	return &reference{n, 1}
+}
+
 // Done decrements the reference counter by one.
-func (n *node) Done() {
-	n.counter--
-	if n.free != nil && n.counter < 0 {
-		n.free(n.key, n.value)
+func (r *reference) Done() {
+	r.n.counter -= r.step
+	r.step = 0
+	if r.n.free != nil && r.n.counter < 0 {
+		r.n.free(r.n.key, r.n.value)
 	}
 }
 
@@ -81,8 +91,11 @@ func (l *LRU) Size() int {
 }
 
 // Set sets the value and increments the reference counter by one for a key.
-func (l *LRU) Set(key, value interface{}, cost int) Reference {
+func (l *LRU) Set(key, value interface{}, cost int) (reference Reference, ok bool) {
 	var n = &node{key: key, value: value, cost: cost, free: l.free}
+	if cost > l.capacity {
+		return n.newReference(), false
+	}
 	if old, ok := l.nodes[key]; ok {
 		var removed bool
 		var oldCost = old.cost
@@ -99,7 +112,7 @@ func (l *LRU) Set(key, value interface{}, cost int) Reference {
 			l.insert(n, l.root)
 		} else {
 			l.replace(old, n)
-			old.Done()
+			old.newReference().Done()
 			if n != l.root.next {
 				l.move(n, l.root)
 			}
@@ -115,7 +128,7 @@ func (l *LRU) Set(key, value interface{}, cost int) Reference {
 		l.cost += cost
 	}
 	n.counter++
-	return n
+	return n.newReference(), true
 }
 
 // Remove removes the value for a key.
@@ -136,7 +149,7 @@ func (l *LRU) Get(key interface{}) (value interface{}, reference Reference, ok b
 		}
 		value = n.value
 		n.counter++
-		reference = n
+		reference = n.newReference()
 	}
 	return
 }
@@ -144,7 +157,7 @@ func (l *LRU) Get(key interface{}) (value interface{}, reference Reference, ok b
 func (l *LRU) delete(n *node) {
 	delete(l.nodes, n.key)
 	l.remove(n)
-	n.Done()
+	n.newReference().Done()
 	l.cost -= n.cost
 }
 
